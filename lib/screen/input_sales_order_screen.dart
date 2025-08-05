@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:ricky_ui_jc/screen/auth/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../model/customer_model.dart';
-import '../service/customer_service.dart';
+import 'package:ricky_ui_jc/screen/auth/login_screen.dart';
+import 'package:ricky_ui_jc/service/customer_service.dart';
+import 'package:ricky_ui_jc/model/customer_model.dart';
 
 class InputSalesOrderScreen extends StatefulWidget {
   const InputSalesOrderScreen({super.key});
@@ -15,52 +15,19 @@ class _InputSalesOrderScreenState extends State<InputSalesOrderScreen> {
   String _fullName = '';
   String _role = '';
 
-  List<CustomerModel> _customerList = [];
-  CustomerModel? _selectedCustomer;
+  final CustomerService _customerService = CustomerService();
 
-  void _showCustomerDialog() async {
-    try {
-      final customers = await CustomerService().getAllCustomers();
-      setState(() {
-        _customerList = customers;
-      });
+  final TextEditingController _customerController = TextEditingController();
+  final TextEditingController _barangController = TextEditingController();
+  final TextEditingController _qtyController = TextEditingController();
 
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Pilih Customer'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _customerList.length,
-              itemBuilder: (context, index) {
-                final customer = _customerList[index];
-                return ListTile(
-                  title: Text(customer.namaCustomer),
-                  subtitle: Text(customer.address),
-                  onTap: () {
-                    setState(() {
-                      _selectedCustomer = customer;
-                      _customerController.text = customer.namaCustomer;
-                    });
-                    Navigator.pop(context);
-                  },
-                );
-              },
-            ),
-          ),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal memuat customer: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
+  String _selectedJenisTransaksi = 'Tunai';
+  String _selectedLokasiTujuan = 'Pilih Lokasi';
+  String _selectedSatuan = 'Pcs';
+
+  bool _lokasiDropdownEnabled = true;
+
+  List<Map<String, String>> listBarang = [];
 
   @override
   void initState() {
@@ -71,73 +38,104 @@ class _InputSalesOrderScreenState extends State<InputSalesOrderScreen> {
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _fullName = prefs.getString('fullName') ?? 'User';
+      _fullName = prefs.getString('fullName') ?? '';
       _role = prefs.getString('role') ?? '';
-    });
-  }
-
-  final TextEditingController _customerController = TextEditingController();
-  final TextEditingController _barangController = TextEditingController();
-  final TextEditingController _qtyController = TextEditingController();
-
-  String _selectedJenisTransaksi = 'Tunai';
-  String _selectedLokasiTujuan = 'Pilih Lokasi';
-  String _selectedSatuan = 'Pcs';
-
-  void _handleTambah() {
-    if (_customerController.text.isEmpty ||
-        _barangController.text.isEmpty ||
-        _qtyController.text.isEmpty ||
-        _selectedJenisTransaksi == 'Tunai' ||
-        _selectedLokasiTujuan == 'Pilih Lokasi' ||
-        _selectedSatuan == 'Pcs') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mohon lengkapi semua field'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Sales order berhasil ditambahkan'),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    _clearForm();
-  }
-
-  void _clearForm() {
-    _customerController.clear();
-    _barangController.clear();
-    _qtyController.clear();
-    setState(() {
-      _selectedJenisTransaksi = 'Tunai';
-      _selectedLokasiTujuan = 'Pilih Lokasi';
-      _selectedSatuan = 'Pcs';
     });
   }
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (Route<dynamic> route) => false,
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
     );
   }
 
-  @override
-  void dispose() {
-    _customerController.dispose();
-    _barangController.dispose();
-    _qtyController.dispose();
-    super.dispose();
+  void _handleTambah() {
+    if (_barangController.text.isNotEmpty && _qtyController.text.isNotEmpty) {
+      setState(() {
+        listBarang.add({
+          'barang': _barangController.text,
+          'qty': _qtyController.text,
+          'address': _selectedLokasiTujuan,
+          'harga': 'Rp 100.000',
+        });
+      });
+
+      _barangController.clear();
+      _qtyController.clear();
+    }
+  }
+
+  void _handleSimpan() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Sales order disimpan")),
+    );
+  }
+
+  Future<void> showCariCustomerDialog() async {
+    try {
+      final customers = await _customerService.getAllCustomers();
+
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (context) {
+          return Dialog(
+            child: SizedBox(
+              height: 400,
+              width: double.infinity,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    width: double.infinity,
+                    color: Colors.red.shade100,
+                    child: const Text(
+                      "Pilih Customer",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: customers.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final customer = customers[index];
+                        return ListTile(
+                          title: Text(customer.namaCustomer),
+                          subtitle: Text(customer.address),
+                          trailing: Text(customer.kodeCustomer),
+                          onTap: () {
+                            setState(() {
+                              _customerController.text = customer.namaCustomer;
+                              _selectedLokasiTujuan = customer.address;
+                              _lokasiDropdownEnabled = false;
+                            });
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memuat customer: $e')),
+      );
+    }
   }
 
   @override
@@ -159,11 +157,16 @@ class _InputSalesOrderScreenState extends State<InputSalesOrderScreen> {
           onSelected: (String value) {
             if (value == 'logout') {
               _logout();
+            } else if (value == 'ubah_password') {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Fitur ubah password belum tersedia')),
+              );
             }
           },
           itemBuilder: (BuildContext context) => [
             const PopupMenuItem<String>(
-              value: 'Ubah Password',
+              value: 'ubah_password',
               child: Text('Ubah Password'),
             ),
             const PopupMenuItem<String>(
@@ -177,7 +180,7 @@ class _InputSalesOrderScreenState extends State<InputSalesOrderScreen> {
           children: [
             Text(
               'Hello, $_fullName',
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -185,340 +188,266 @@ class _InputSalesOrderScreenState extends State<InputSalesOrderScreen> {
             ),
             Text(
               _role,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.grey,
                 fontSize: 16,
               ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.refresh,
-              color: Colors.grey,
-            ),
-          ),
-        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8C4C4),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.redAccent),
-              ),
-              child: const Text(
-                'Input Sales Order',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8D6D6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red),
                 ),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _customerController,
-                    decoration: InputDecoration(
-                      hintText: 'Customer',
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                    ),
+                child: const Text(
+                  'Input Sales Order',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 1,
-                  child: ElevatedButton(
-                    onPressed: _showCustomerDialog,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD32F2F),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'Cari Customer',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Jenis Transaksi Dropdown
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedJenisTransaksi,
-                  isExpanded: true,
-                  style: const TextStyle(color: Colors.black87),
-                  items: [
-                    'Tunai',
-                    'Kredit',
-                  ].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedJenisTransaksi = newValue!;
-                    });
-                  },
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Barang Section
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _barangController,
-                    decoration: InputDecoration(
-                      hintText: 'Barang',
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
+              const SizedBox(height: 16),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      _buildFieldWithButton(
+                        controller: _customerController,
+                        hint: 'Customer',
+                        buttonText: 'Cari Customer',
+                        onPressed: showCariCustomerDialog,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 1,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD32F2F),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text(
-                      'Cari Barang',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Pilih Lokasi Dropdown
-            // Container(
-            //   width: double.infinity,
-            //   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            //   decoration: BoxDecoration(
-            //     color: Colors.white,
-            //     borderRadius: BorderRadius.circular(8),
-            //   ),
-            //   child: DropdownButtonHideUnderline(
-            //     child: DropdownButton<String>(
-            //       value: _selectedLokasiTujuan,
-            //       isExpanded: true,
-            //       style: const TextStyle(color: Colors.black87),
-            //       // items: [
-            //       //   'Pilih Lokasi',
-            //       // ].map((String value) {
-            //       //   return DropdownMenuItem<String>(
-            //       //     value: value,
-            //       //     child: Text(value),
-            //       //   );
-            //       // }).toList(),
-            //       items: _selectedCustomer != null
-            //           ? [_selectedCustomer!.address]
-            //               .map((value) => DropdownMenuItem<String>(
-            //                     value: value,
-            //                     child: Text(value),
-            //                   ))
-            //               .toList()
-            //           : [
-            //               const DropdownMenuItem(
-            //                 value: 'Pilih Lokasi',
-            //                 child: Text('Pilih Lokasi'),
-            //               ),
-            //             ],
-            //       onChanged: (String? newValue) {
-            //         setState(() {
-            //           _selectedLokasiTujuan = newValue!;
-            //         });
-            //       },
-            //     ),
-            //   ),
-            // ),
-
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedCustomer != null
-                      ? _selectedCustomer!.address
-                      : _selectedLokasiTujuan,
-                  isExpanded: true,
-                  style: const TextStyle(color: Colors.black87),
-                  items: _selectedCustomer != null
-                      ? [_selectedCustomer!.address]
-                          .map((value) => DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              ))
-                          .toList()
-                      : [
-                          const DropdownMenuItem(
-                            value: 'Pilih Lokasi',
-                            child: Text('Pilih Lokasi'),
-                          ),
-                        ],
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedLokasiTujuan = newValue!;
-                    });
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _qtyController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: 'Qty',
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedSatuan,
-                        isExpanded: true,
-                        style: const TextStyle(color: Colors.black87),
-                        items: [
-                          'Pcs',
-                        ].map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
+                      const SizedBox(height: 12),
+                      _buildDropdown(
+                        value: _selectedJenisTransaksi,
+                        items: const ['Tunai', 'Kredit'],
+                        onChanged: (val) {
                           setState(() {
-                            _selectedSatuan = newValue!;
+                            _selectedJenisTransaksi = val!;
                           });
                         },
                       ),
+                      const SizedBox(height: 12),
+                      _buildFieldWithButton(
+                        controller: _barangController,
+                        hint: 'Barang',
+                        buttonText: 'Cari Barang',
+                        onPressed: () {},
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDropdown(
+                        value: _selectedLokasiTujuan,
+                        items: [_selectedLokasiTujuan],
+                        onChanged: _lokasiDropdownEnabled
+                            ? (val) {
+                                setState(() {
+                                  _selectedLokasiTujuan = val!;
+                                });
+                              }
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _qtyController,
+                              hint: 'Qty',
+                              keyboard: TextInputType.number,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildDropdown(
+                              value: _selectedSatuan,
+                              items: const ['Pcs'],
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedSatuan = val!;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _handleTambah,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD32F2F),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          minimumSize: const Size.fromHeight(45),
+                        ),
+                        icon: const Icon(Icons.add),
+                        label: const Text("Tambah"),
+                      ),
+                      const SizedBox(height: 20),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "List Barang",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ...listBarang.map((item) {
+                        return Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(
+                              color: Colors.red.shade100,
+                            ),
+                          ),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${item['barang']}  (${item['qty']})',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(item['address'] ?? ''),
+                                Text(item['harga'] ?? ''),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _handleSimpan,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD32F2F),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Simpan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-        child: SizedBox(
-          width: double.infinity,
-          height: 50,
+    );
+  }
+
+  Widget _buildFieldWithButton({
+    required TextEditingController controller,
+    required String hint,
+    required String buttonText,
+    required VoidCallback onPressed,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: _buildTextField(controller: controller, hint: hint),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 1,
           child: ElevatedButton(
-            onPressed: _handleTambah,
+            onPressed: onPressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
             ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_circle_outline),
-                SizedBox(width: 8),
-                Text(
-                  'Tambah',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            child: Text(
+              buttonText,
+              style: const TextStyle(fontSize: 12),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    TextInputType keyboard = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboard,
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?>? onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          onChanged: onChanged,
+          items: items
+              .map((e) => DropdownMenuItem<String>(
+                    value: e,
+                    child: Text(e),
+                  ))
+              .toList(),
         ),
       ),
     );

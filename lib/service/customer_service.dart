@@ -1,6 +1,7 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
-import '../model/customer_model.dart';
+import 'package:ricky_ui_jc/model/customer_model.dart';
 import 'package:ricky_ui_jc/network/network_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,8 +23,11 @@ class CustomerService {
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonData = jsonDecode(response.body);
-      return jsonData.map((json) => CustomerModel.fromJson(json)).toList();
+      final Map<String, dynamic> jsonResult = jsonDecode(response.body);
+
+      final List<dynamic> data = jsonResult['data'];
+
+      return data.map((json) => CustomerModel.fromJson(json)).toList();
     } else {
       throw Exception(
           'Gagal memuat customer. Status code: ${response.statusCode}');

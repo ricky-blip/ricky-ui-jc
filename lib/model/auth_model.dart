@@ -1,20 +1,37 @@
 class LoginResponse {
+  final Meta meta;
   final Data data;
-  final bool success;
-  final String message;
-  final String timestamp;
 
   LoginResponse({
+    required this.meta,
     required this.data,
-    required this.success,
-    required this.message,
-    required this.timestamp,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
     return LoginResponse(
+      meta: Meta.fromJson(json['meta']),
       data: Data.fromJson(json['data']),
-      success: json['success'],
+    );
+  }
+}
+
+class Meta {
+  final int code;
+  final String status;
+  final String message;
+  final String timestamp;
+
+  Meta({
+    required this.code,
+    required this.status,
+    required this.message,
+    required this.timestamp,
+  });
+
+  factory Meta.fromJson(Map<String, dynamic> json) {
+    return Meta(
+      code: json['code'],
+      status: json['status'],
       message: json['message'],
       timestamp: json['timestamp'],
     );
