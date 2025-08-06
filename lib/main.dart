@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ricky_ui_jc/screen/auth/login_screen.dart';
+import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
 
 void main() {
   runApp(const MyApp());

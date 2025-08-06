@@ -17,7 +17,6 @@ class CustomerModel {
     required this.isActive,
   });
 
-  /// Factory dari JSON ke objek CustomerModel
   factory CustomerModel.fromJson(Map<String, dynamic> json) {
     return CustomerModel(
       idCustomer: json['idCustomer'] ?? 0,
@@ -30,7 +29,6 @@ class CustomerModel {
     );
   }
 
-  /// Optional: dari objek ke JSON (berguna jika mau kirim balik ke API)
   Map<String, dynamic> toJson() {
     return {
       'idCustomer': idCustomer,
