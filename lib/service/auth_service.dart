@@ -1,15 +1,16 @@
+// service/auth_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../model/auth_model.dart';
-import '../network/network_api.dart'; // untuk baseUrlHp
+import 'package:ricky_ui_jc/model/auth_model.dart';
+import 'package:ricky_ui_jc/network/network_api.dart';
 
 class AuthService {
-  final String uri = "$baseUrlHp/auth/login";
+  Future<LoginResponseModel> login(String username, String password) async {
+    final url = Uri.parse('$baseUrlHp/auth/login');
 
-  Future<LoginResponse> login(String username, String password) async {
     try {
       final response = await http.post(
-        Uri.parse(uri),
+        url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': username,
@@ -17,17 +18,22 @@ class AuthService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final jsonResult = jsonDecode(response.body);
-        return LoginResponse.fromJson(jsonResult);
-      } else {
-        // Tangani respons gagal dengan isi body jika tersedia
-        final error = jsonDecode(response.body);
-        throw Exception(
-            error['meta']?['message'] ?? 'Login gagal: ${response.statusCode}');
+      final jsonResponse = json.decode(response.body);
+
+      final meta = jsonResponse['meta'];
+      final code = meta['code'];
+      final status = meta['status'];
+      final message = meta['message'];
+
+      if (code != 200 || status != 'success') {
+        // Hanya tampilkan pesan utama saja dari meta.message
+        throw Exception(message);
       }
+
+      return LoginResponseModel.fromJson(jsonResponse);
     } catch (e) {
-      throw Exception('Terjadi kesalahan saat login: $e');
+      print("Error saat login: $e");
+      rethrow;
     }
   }
 }

@@ -1,10 +1,7 @@
-// screen/login_screen.dart
-
 import 'package:flutter/material.dart';
-import 'package:ricky_ui_jc/service/auth_service.dart';
-import 'package:ricky_ui_jc/model/auth_model.dart';
 import 'package:ricky_ui_jc/screen/main_screen.dart';
-import 'package:ricky_ui_jc/utils/secure_storage.dart'; // ← Tambahkan ini
+import 'package:ricky_ui_jc/service/auth_service.dart';
+import 'package:ricky_ui_jc/utils/secure_storage.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,18 +11,24 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+
   final AuthService _authService = AuthService();
 
-  bool _isLoading = false;
-  bool _isPasswordVisible = false;
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+  void showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.red[700],
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   Future<void> _handleLogin() async {
@@ -33,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      _showSnackBar('Username dan Password wajib diisi');
+      showError('Username dan Password wajib diisi');
       return;
     }
 
@@ -42,15 +45,11 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final response = await _authService.login(username, password);
 
-      //Simpan ke secure storage
+      // Simpan token ke secure storage
       await SecureStorage.write(key: 'token', value: response.data.token);
       await SecureStorage.write(
-          key: 'username', value: response.data.user.username);
-      await SecureStorage.writeInt(
-          key: 'idUser', value: response.data.user.idUser);
-      await SecureStorage.write(key: 'role', value: response.data.user.role);
-      await SecureStorage.write(
           key: 'fullName', value: response.data.user.fullName);
+      await SecureStorage.write(key: 'role', value: response.data.user.role);
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -59,32 +58,18 @@ class _LoginScreenState extends State<LoginScreen> {
           builder: (_) => const MainScreen(),
         ),
       );
-    } catch (e) {
-      _showSnackBar(
-          'Login gagal: ${e.toString().replaceAll('Exception:', '').trim()}');
+    } on Exception catch (e) {
+      String errorMessage = e.toString();
+
+      // Hilangkan prefix 'Exception:'
+      if (errorMessage.startsWith('Exception:')) {
+        errorMessage = errorMessage.replaceFirst('Exception:', '').trim();
+      }
+
+      showError(errorMessage);
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
-  InputDecoration _buildInputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey),
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide.none,
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-    );
   }
 
   @override
@@ -116,31 +101,37 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 60),
 
-                // Username
+                // Username Field
                 TextField(
                   controller: _usernameController,
-                  decoration: _buildInputDecoration('Username'),
+                  decoration: InputDecoration(
+                    hintText: 'Username',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
+                  ),
                 ),
                 const SizedBox(height: 16),
 
-                // Password
+                // Password Field
                 TextField(
                   controller: _passwordController,
-                  obscureText: !_isPasswordVisible,
-                  decoration: _buildInputDecoration('Password').copyWith(
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: Colors.grey,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
-                      },
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    hintText: 'Password',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
                     ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
                   ),
                 ),
 

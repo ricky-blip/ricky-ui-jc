@@ -1,16 +1,16 @@
-class LoginResponse {
+class LoginResponseModel {
   final Meta meta;
-  final Data data;
+  final LoginData data;
 
-  LoginResponse({
+  LoginResponseModel({
     required this.meta,
     required this.data,
   });
 
-  factory LoginResponse.fromJson(Map<String, dynamic> json) {
-    return LoginResponse(
+  factory LoginResponseModel.fromJson(Map<String, dynamic> json) {
+    return LoginResponseModel(
       meta: Meta.fromJson(json['meta']),
-      data: Data.fromJson(json['data']),
+      data: LoginData.fromJson(json['data']),
     );
   }
 }
@@ -38,17 +38,17 @@ class Meta {
   }
 }
 
-class Data {
+class LoginData {
   final User user;
   final String token;
 
-  Data({
+  LoginData({
     required this.user,
     required this.token,
   });
 
-  factory Data.fromJson(Map<String, dynamic> json) {
-    return Data(
+  factory LoginData.fromJson(Map<String, dynamic> json) {
+    return LoginData(
       user: User.fromJson(json['user']),
       token: json['token'],
     );
