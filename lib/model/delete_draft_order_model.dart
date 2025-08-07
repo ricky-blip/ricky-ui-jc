@@ -1,10 +1,10 @@
-class SubmitDraftOrderResponseModel {
+class DeleteDraftOrderResponseModel {
   final Meta meta;
 
-  SubmitDraftOrderResponseModel({required this.meta});
+  DeleteDraftOrderResponseModel({required this.meta});
 
-  factory SubmitDraftOrderResponseModel.fromJson(Map<String, dynamic> json) {
-    return SubmitDraftOrderResponseModel(
+  factory DeleteDraftOrderResponseModel.fromJson(Map<String, dynamic> json) {
+    return DeleteDraftOrderResponseModel(
       meta: Meta.fromJson(json['meta']),
     );
   }

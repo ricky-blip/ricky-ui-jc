@@ -1,17 +1,17 @@
-class DraftSalesOrderResponseModel {
+class ApprovalOrderResponseModel {
   final Meta meta;
-  final List<DraftSalesOrderModel> data;
+  final List<ApprovalOrderData> data;
 
-  DraftSalesOrderResponseModel({
+  ApprovalOrderResponseModel({
     required this.meta,
     required this.data,
   });
 
-  factory DraftSalesOrderResponseModel.fromJson(Map<String, dynamic> json) {
-    return DraftSalesOrderResponseModel(
+  factory ApprovalOrderResponseModel.fromJson(Map<String, dynamic> json) {
+    return ApprovalOrderResponseModel(
       meta: Meta.fromJson(json['meta']),
-      data: (json['data'] as List)
-          .map((item) => DraftSalesOrderModel.fromJson(item))
+      data: (json['data'] as List<dynamic>)
+          .map((item) => ApprovalOrderData.fromJson(item))
           .toList(),
     );
   }
@@ -40,14 +40,14 @@ class Meta {
   }
 }
 
-class DraftSalesOrderModel {
+class ApprovalOrderData {
   final int idSalesOrder;
   final String noFaktur;
   final String namaCustomer;
   final String transactionType;
   final double totalHarga;
 
-  DraftSalesOrderModel({
+  ApprovalOrderData({
     required this.idSalesOrder,
     required this.noFaktur,
     required this.namaCustomer,
@@ -55,8 +55,8 @@ class DraftSalesOrderModel {
     required this.totalHarga,
   });
 
-  factory DraftSalesOrderModel.fromJson(Map<String, dynamic> json) {
-    return DraftSalesOrderModel(
+  factory ApprovalOrderData.fromJson(Map<String, dynamic> json) {
+    return ApprovalOrderData(
       idSalesOrder: json['idSalesOrder'],
       noFaktur: json['noFaktur'],
       namaCustomer: json['namaCustomer'],

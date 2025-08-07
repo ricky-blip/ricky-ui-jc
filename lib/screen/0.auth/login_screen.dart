@@ -1,8 +1,10 @@
+// screen/login_screen.dart
+
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ricky_ui_jc/service/auth_service.dart';
 import 'package:ricky_ui_jc/model/auth_model.dart';
 import 'package:ricky_ui_jc/screen/main_screen.dart';
+import 'package:ricky_ui_jc/utils/secure_storage.dart'; // ← Tambahkan ini
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,12 +42,15 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final response = await _authService.login(username, password);
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', response.data.token);
-      await prefs.setString('username', response.data.user.username);
-      await prefs.setInt('idUser', response.data.user.idUser);
-      await prefs.setString('role', response.data.user.role);
-      await prefs.setString('fullName', response.data.user.fullName);
+      //Simpan ke secure storage
+      await SecureStorage.write(key: 'token', value: response.data.token);
+      await SecureStorage.write(
+          key: 'username', value: response.data.user.username);
+      await SecureStorage.writeInt(
+          key: 'idUser', value: response.data.user.idUser);
+      await SecureStorage.write(key: 'role', value: response.data.user.role);
+      await SecureStorage.write(
+          key: 'fullName', value: response.data.user.fullName);
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -65,6 +70,20 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.grey),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 
@@ -157,20 +176,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  InputDecoration _buildInputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey),
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide.none,
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 }

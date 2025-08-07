@@ -1,33 +1,47 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:ricky_ui_jc/network/network_api.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ricky_ui_jc/model/submit_draft_order_model.dart';
+import 'package:ricky_ui_jc/network/network_api.dart';
+import 'package:ricky_ui_jc/service/api_client.dart';
 
 class SubmitDraftOrderService {
-  Future<SubmitDraftOrderResponseModel> submitDraftOrder(
-      int idSalesOrder) async {
-    final url = Uri.parse('$baseUrlHp/sales-orders/$idSalesOrder/submit');
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+  final ApiClient _client = ApiClient(baseUrl: baseUrlHp);
 
-    try {
-      final response = await http.put(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+  Future<void> submit(int idSalesOrder) async {
+    final response =
+        await _client.put('/sales-orders/$idSalesOrder/submit', null);
 
-      if (response.statusCode == 200) {
+    if (response.statusCode == 200) {
+      try {
         final jsonResponse = json.decode(response.body);
-        return SubmitDraftOrderResponseModel.fromJson(jsonResponse);
-      } else {
-        throw Exception('Failed to submit draft sales order');
+        final submitResponse =
+            SubmitDraftOrderResponseModel.fromJson(jsonResponse);
+        print(
+            'Sukses: ${submitResponse.meta.message}'); // Gunakan pesan dari API
+        // Atau tampilkan pesan sukses ke pengguna
+        // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(submitResponse.meta.message)));
+      } catch (e) {
+        // Jika parsing gagal, tetap tampilkan pesan sukses umum
+        print(
+            'Sales Order berhasil dikirim ke approval (respons tidak dapat diparsing)');
       }
-    } catch (e) {
-      throw Exception('Error submitting draft sales order: $e');
+      // Jangan throw exception untuk status 200
+      return; // Keluar dari fungsi jika sukses
+    } else {
+      // Tangani error berdasarkan respons API
+      String errorMessage = 'Gagal mengirim Sales Order ke approval';
+      try {
+        final jsonResponse = json.decode(response.body);
+        final submitResponse =
+            SubmitDraftOrderResponseModel.fromJson(jsonResponse);
+        errorMessage =
+            submitResponse.meta.message; // Gunakan pesan error dari API
+      } catch (e) {
+        // Jika parsing gagal, gunakan pesan error umum
+        errorMessage =
+            'Gagal mengirim Sales Order ke approval (respons tidak dapat diparsing)';
+      }
+      throw Exception(errorMessage);
     }
   }
 }

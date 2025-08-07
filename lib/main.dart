@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
+import 'package:ricky_ui_jc/screen/main_screen.dart';
+import 'package:ricky_ui_jc/screen/splash_screen.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(
+    MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const LoginScreen(),
-    );
-  }
+      title: 'Selo',
+      theme: ThemeData(primarySwatch: Colors.red),
+      home: const SplashScreen(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/main': (context) => const MainScreen(),
+      },
+    ),
+  );
 }
