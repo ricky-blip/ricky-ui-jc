@@ -1,8 +1,9 @@
-// service/auth_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:ricky_ui_jc/model/auth_model.dart';
+import 'package:ricky_ui_jc/model/auth/auth_model.dart';
+import 'package:ricky_ui_jc/model/auth/change_password.dart';
 import 'package:ricky_ui_jc/network/network_api.dart';
+import 'package:ricky_ui_jc/utils/secure_storage.dart';
 
 class AuthService {
   Future<LoginResponseModel> login(String username, String password) async {
@@ -35,5 +36,29 @@ class AuthService {
       print("Error saat login: $e");
       rethrow;
     }
+  }
+
+  Future<ChangePasswordResponse> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    final token = await SecureStorage.read(key: 'token');
+
+    final response = await http.put(
+      Uri.parse('$baseUrlHp/auth/change-password'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        "oldPassword": oldPassword,
+        "newPassword": newPassword,
+        "confirmNewPassword": confirmNewPassword,
+      }),
+    );
+
+    final json = jsonDecode(response.body);
+    return ChangePasswordResponse.fromJson(json);
   }
 }

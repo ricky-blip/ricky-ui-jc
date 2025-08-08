@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ricky_ui_jc/model/draft_so_model.dart';
+import 'package:ricky_ui_jc/model/draft/get/draft_so_model.dart';
 import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
 import 'package:ricky_ui_jc/screen/detail_draft_sales_order_screen.dart';
 import 'package:ricky_ui_jc/screen/edit_draft_sales_order_screen.dart';
@@ -63,15 +63,25 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
         _isLoading = true;
       });
 
-      final drafts = await _draftService.getDraftSalesOrders();
-      setState(() {
-        _draftSalesOrders = drafts.data;
-        _isLoading = false;
-      });
+      final response = await _draftService.getDraftSalesOrders();
+
+      if (response.meta.code == 200 && response.data != null) {
+        setState(() {
+          _draftSalesOrders = response.data!;
+        });
+      } else {
+        setState(() {
+          _draftSalesOrders = [];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.meta.message)),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal memuat draft sales order: $e')),
       );
+    } finally {
       setState(() {
         _isLoading = false;
       });

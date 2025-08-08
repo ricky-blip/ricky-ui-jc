@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:ricky_ui_jc/model/draft_so_model.dart';
+import 'package:ricky_ui_jc/model/draft/get/draft_so_model.dart';
 import 'package:ricky_ui_jc/network/network_api.dart';
 import 'package:ricky_ui_jc/utils/secure_storage.dart';
 
@@ -16,11 +16,9 @@ class DraftSalesOrderService {
       'Authorization': 'Bearer $token',
     });
 
-    if (response.statusCode == 200) {
-      final jsonResponse = json.decode(response.body);
-      return DraftSalesOrderResponseModel.fromJson(jsonResponse);
-    } else {
-      throw Exception('Gagal memuat draft sales order: ${response.statusCode}');
-    }
+    final jsonResponse = json.decode(response.body);
+
+    // Kembalikan model apapun status code-nya
+    return DraftSalesOrderResponseModel.fromJson(jsonResponse);
   }
 }

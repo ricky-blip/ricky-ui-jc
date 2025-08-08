@@ -10,7 +10,7 @@ class ApprovalOrderResponseModel {
   factory ApprovalOrderResponseModel.fromJson(Map<String, dynamic> json) {
     return ApprovalOrderResponseModel(
       meta: Meta.fromJson(json['meta']),
-      data: (json['data'] as List<dynamic>)
+      data: (json['data'] as List<dynamic>? ?? [])
           .map((item) => ApprovalOrderData.fromJson(item))
           .toList(),
     );
@@ -32,10 +32,10 @@ class Meta {
 
   factory Meta.fromJson(Map<String, dynamic> json) {
     return Meta(
-      code: json['code'],
-      status: json['status'],
-      message: json['message'],
-      timestamp: json['timestamp'],
+      code: json['code'] ?? 0,
+      status: json['status'] ?? '',
+      message: json['message'] ?? '',
+      timestamp: json['timestamp'] ?? '',
     );
   }
 }
@@ -57,11 +57,11 @@ class ApprovalOrderData {
 
   factory ApprovalOrderData.fromJson(Map<String, dynamic> json) {
     return ApprovalOrderData(
-      idSalesOrder: json['idSalesOrder'],
-      noFaktur: json['noFaktur'],
-      namaCustomer: json['namaCustomer'],
-      transactionType: json['transactionType'],
-      totalHarga: json['totalHarga'].toDouble(),
+      idSalesOrder: json['idSalesOrder'] ?? 0,
+      noFaktur: json['noFaktur'] ?? '',
+      namaCustomer: json['namaCustomer'] ?? '',
+      transactionType: json['transactionType'] ?? '',
+      totalHarga: (json['totalHarga'] ?? 0).toDouble(),
     );
   }
 }

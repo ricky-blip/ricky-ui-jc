@@ -1,7 +1,7 @@
 // service/delete_draft_order_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:ricky_ui_jc/model/delete_draft_order_model.dart';
+import 'package:ricky_ui_jc/model/draft/delete/delete_draft_order_model.dart';
 import 'package:ricky_ui_jc/network/network_api.dart';
 import 'package:ricky_ui_jc/utils/secure_storage.dart';
 

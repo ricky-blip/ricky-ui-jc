@@ -1,4 +1,3 @@
-// --- RESPONSE MODEL ---
 class SaveAsDraftResponseModel {
   final Meta meta;
 

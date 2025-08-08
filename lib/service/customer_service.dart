@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:ricky_ui_jc/model/customer_model.dart';
+import 'package:ricky_ui_jc/model/customer/customer_model.dart';
 import 'package:ricky_ui_jc/network/network_api.dart';
 import 'package:ricky_ui_jc/service/api_client.dart';
 

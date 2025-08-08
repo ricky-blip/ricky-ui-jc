@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:ricky_ui_jc/model/save_as_draft_model.dart';
+import 'package:ricky_ui_jc/model/input%20so/save_as_draft_model.dart';
 import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
 import 'package:ricky_ui_jc/service/save_as_draft_service.dart';
 import 'package:ricky_ui_jc/service/customer_service.dart';
-import 'package:ricky_ui_jc/model/barang_model.dart';
+import 'package:ricky_ui_jc/model/barang/barang_model.dart';
 import 'package:ricky_ui_jc/service/barang_service.dart';
 import 'package:ricky_ui_jc/utils/secure_storage.dart';
 
@@ -124,7 +124,8 @@ class _InputSalesOrderScreenState extends State<InputSalesOrderScreen> {
                                 title: Text(barang.namaBarang),
                                 subtitle: Text(
                                     "${barang.kodeBarang} - Rp ${barang.harga.toStringAsFixed(2)}"),
-                                trailing: Text(barang.satuan),
+                                trailing: Text(
+                                    "${barang.satuan} (${barang.availableQty})"),
                                 onTap: () {
                                   setState(() {
                                     _barangController.text = barang.namaBarang;

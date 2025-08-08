@@ -21,7 +21,7 @@ class ApiClient {
     };
 
     final response = await http.get(uri, headers: headers);
-    return response; // Kembalikan response mentah
+    return response;
   }
 
   Future<http.Response> post(String endpoint, Object? body) async {
@@ -55,6 +55,6 @@ class ApiClient {
 
     final response =
         await http.put(uri, headers: headers, body: jsonEncode(body));
-    return response; // Kembalikan response mentah
+    return response;
   }
 }

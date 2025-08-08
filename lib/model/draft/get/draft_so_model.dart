@@ -1,18 +1,20 @@
 class DraftSalesOrderResponseModel {
   final Meta meta;
-  final List<DraftSalesOrderModel> data;
+  final List<DraftSalesOrderModel>? data;
 
   DraftSalesOrderResponseModel({
     required this.meta,
-    required this.data,
+    this.data,
   });
 
   factory DraftSalesOrderResponseModel.fromJson(Map<String, dynamic> json) {
     return DraftSalesOrderResponseModel(
       meta: Meta.fromJson(json['meta']),
-      data: (json['data'] as List)
-          .map((item) => DraftSalesOrderModel.fromJson(item))
-          .toList(),
+      data: json['data'] != null
+          ? (json['data'] as List)
+              .map((item) => DraftSalesOrderModel.fromJson(item))
+              .toList()
+          : null,
     );
   }
 }
@@ -61,7 +63,7 @@ class DraftSalesOrderModel {
       noFaktur: json['noFaktur'],
       namaCustomer: json['namaCustomer'],
       transactionType: json['transactionType'],
-      totalHarga: json['totalHarga'].toDouble(),
+      totalHarga: (json['totalHarga'] ?? 0).toDouble(),
     );
   }
 }

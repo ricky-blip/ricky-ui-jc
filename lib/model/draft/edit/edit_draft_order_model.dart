@@ -11,7 +11,7 @@ class EditDraftOrderModel {
 }
 
 class EditDraftOrderDetail {
-  final int idBarang; // Ubah dari String menjadi int
+  final int idBarang;
   final String address;
   final int quantity;
   final double hargaJual;

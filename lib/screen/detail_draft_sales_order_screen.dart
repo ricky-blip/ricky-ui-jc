@@ -1,6 +1,6 @@
 // screen/detail_draft_sales_order_screen.dart
 import 'package:flutter/material.dart';
-import 'package:ricky_ui_jc/model/detail_draft_order_model.dart';
+import 'package:ricky_ui_jc/model/draft/get/detail_draft_order_model.dart';
 import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
 import 'package:ricky_ui_jc/service/detail_draft_order_service.dart';
 import 'package:ricky_ui_jc/utils/secure_storage.dart';
@@ -70,7 +70,7 @@ class _DetailDraftSalesOrderScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detail Draft Sales Order'),
+        title: const Text('Detail'),
         backgroundColor: Colors.white,
         elevation: 0,
       ),

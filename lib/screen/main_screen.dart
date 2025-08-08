@@ -1,11 +1,11 @@
-// screen/main_screen.dart
 import 'package:flutter/material.dart';
+import 'package:ricky_ui_jc/screen/0.auth/change_password_screen.dart';
 import 'package:ricky_ui_jc/screen/draft_sales_order_screen.dart';
 import 'package:ricky_ui_jc/screen/input_sales_order_screen.dart';
 import 'package:ricky_ui_jc/screen/order_approval_screen.dart';
 import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
 import 'package:ricky_ui_jc/utils/secure_storage.dart';
-import 'package:ricky_ui_jc/utils/jwt_decoder.dart'; // ← Import decoder
+import 'package:ricky_ui_jc/utils/jwt_decoder.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -32,7 +32,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _pageController = PageController(initialPage: _currentIndex);
     _loadUserData();
-    _checkTokenValidity(); // Cek token saat pertama kali masuk
+    _checkTokenValidity();
   }
 
   @override
@@ -61,7 +61,6 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // 🔐 Cek apakah token masih valid
   Future<void> _checkTokenValidity() async {
     try {
       final token = await SecureStorage.read(key: 'token');
@@ -79,7 +78,6 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // 🔐 Fungsi logout paksa
   Future<void> _forceLogout(String message) async {
     await SecureStorage.deleteAll();
 
@@ -95,7 +93,49 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // 🔁 Fungsi untuk cek token sebelum request API (dipanggil di child screen)
+  Future<void> _handleLogout() async {
+    bool confirm = await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Konfirmasi Logout'),
+            content: const Text('Apakah Anda yakin ingin logout?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Batal'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Logout'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (confirm) {
+      await SecureStorage.deleteAll();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  Future<void> _handleChangePassword() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangePasswordScreen(
+          onForceLogout: _forceLogout,
+        ),
+      ),
+    );
+  }
+
   Future<bool> isTokenValid() async {
     try {
       final token = await SecureStorage.read(key: 'token');
@@ -174,45 +214,31 @@ class _MainScreenState extends State<MainScreen> {
           backgroundColor: const Color(0xFFD32F2F),
           elevation: 1,
           actions: [
-            IconButton(
+            // --- Perubahan di sini ---
+            PopupMenuButton<String>(
               icon: const Icon(
-                Icons.logout,
-                size: 18,
+                Icons.more_vert, // Ikon titik tiga vertikal
                 color: Colors.white,
               ),
-              onPressed: () async {
-                bool confirm = await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Konfirmasi Logout'),
-                        content: const Text('Apakah Anda yakin ingin logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Batal'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text('Logout'),
-                          ),
-                        ],
-                      ),
-                    ) ??
-                    false;
-
-                if (confirm) {
-                  await SecureStorage.deleteAll();
-                  if (mounted) {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (route) => false,
-                    );
-                  }
+              onSelected: (String value) {
+                if (value == 'ubah_password') {
+                  _handleChangePassword();
+                } else if (value == 'logout') {
+                  _handleLogout();
                 }
               },
-              tooltip: 'Logout',
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'ubah_password',
+                  child: Text('Ubah Password'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Text('Logout'),
+                ),
+              ],
             ),
+            // --- Akhir perubahan ---
             const SizedBox(width: 8),
           ],
         ),

@@ -14,16 +14,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   final AuthService _authService = AuthService();
 
   void showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white),
-        ),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
         backgroundColor: Colors.red[700],
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 4),
@@ -45,7 +43,6 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final response = await _authService.login(username, password);
 
-      // Simpan token ke secure storage
       await SecureStorage.write(key: 'token', value: response.data.token);
       await SecureStorage.write(
           key: 'fullName', value: response.data.user.fullName);
@@ -54,18 +51,13 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const MainScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const MainScreen()),
       );
     } on Exception catch (e) {
       String errorMessage = e.toString();
-
-      // Hilangkan prefix 'Exception:'
       if (errorMessage.startsWith('Exception:')) {
         errorMessage = errorMessage.replaceFirst('Exception:', '').trim();
       }
-
       showError(errorMessage);
     } finally {
       setState(() => _isLoading = false);
@@ -85,18 +77,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Text(
                   'Selo',
                   style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'Sales Order Management System',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 60),
@@ -121,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Password Field
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     hintText: 'Password',
                     filled: true,
@@ -132,6 +120,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 16),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                    ),
                   ),
                 ),
 
@@ -145,21 +140,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       backgroundColor: const Color(0xFFD32F2F),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          )
-                        : const Text(
-                            'Login',
+                            color: Colors.white, strokeWidth: 2)
+                        : const Text('Login',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                                fontSize: 16, fontWeight: FontWeight.w500)),
                   ),
                 ),
               ],
