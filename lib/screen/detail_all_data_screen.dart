@@ -1,27 +1,25 @@
-// screen/detail_draft_sales_order_screen.dart
 import 'package:flutter/material.dart';
 import 'package:ricky_ui_jc/model/draft/get/detail_draft_order_model.dart';
 import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
+import 'package:ricky_ui_jc/service/Get%20All%20Detail/detail_all_data_service.dart';
 import 'package:ricky_ui_jc/service/detail_draft_order_service.dart';
 import 'package:ricky_ui_jc/utils/secure_storage.dart';
 
-class DetailDraftSalesOrderScreen extends StatefulWidget {
+class DetailAllDataSOScreen extends StatefulWidget {
   final int idSalesOrder;
 
-  const DetailDraftSalesOrderScreen({required this.idSalesOrder, super.key});
+  const DetailAllDataSOScreen({required this.idSalesOrder, super.key});
 
   @override
-  State<DetailDraftSalesOrderScreen> createState() =>
-      _DetailDraftSalesOrderScreenState();
+  State<DetailAllDataSOScreen> createState() => _DetailAllDataSOScreenState();
 }
 
-class _DetailDraftSalesOrderScreenState
-    extends State<DetailDraftSalesOrderScreen> {
+class _DetailAllDataSOScreenState extends State<DetailAllDataSOScreen> {
   // late DetailDraftOrderResponseModel _detail;
   late DetailDraftOrderResponseModel _detail;
   bool _isLoading = true;
 
-  final DetailDraftOrderService _detailService = DetailDraftOrderService();
+  final DetailAllDataSOService _detailService = DetailAllDataSOService();
 
   @override
   void initState() {

@@ -1,6 +1,10 @@
 // screen/order_approval_screen.dart
 import 'package:flutter/material.dart';
 import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
+import 'package:ricky_ui_jc/screen/detail_all_data_screen.dart';
+import 'package:ricky_ui_jc/screen/detail_draft_sales_order_screen.dart';
+import 'package:ricky_ui_jc/service/approval/rejected_so_service.dart';
+import 'package:ricky_ui_jc/service/approval/validated_so_service.dart';
 import 'package:ricky_ui_jc/utils/secure_storage.dart';
 import 'package:ricky_ui_jc/service/approval_order_service.dart';
 import 'package:ricky_ui_jc/model/approval_order_model.dart';
@@ -23,12 +27,14 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
   OrderStatus _selectedFilter = OrderStatus.unvalidated; // Default filter
 
   final ApprovalOrderService _approvalService = ApprovalOrderService();
+  final RejectedSoService _rejectService = RejectedSoService();
+  final ValidatedSoService _validatedService = ValidatedSoService();
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    _fetchOrders(_selectedFilter); // Muat data berdasarkan filter default
+    _fetchOrders(_selectedFilter);
   }
 
   Future<void> _loadUserData() async {
@@ -50,7 +56,6 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
     }
   }
 
-  // Fungsi umum untuk mengambil data berdasarkan status
   Future<void> _fetchOrders(OrderStatus status) async {
     try {
       final isValid = await SecureStorage.isTokenValid();
@@ -107,67 +112,46 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
     }
   }
 
-  // Placeholder untuk fungsi Reject (implementasi service terpisah diperlukan)
   Future<void> _rejectOrder(int idSalesOrder) async {
-    // TODO: Implementasi service untuk reject order
-    // Contoh:
-    // try {
-    //   await ApprovalActionService().reject(idSalesOrder);
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Order $idSalesOrder ditolak')),
-    //   );
-    //   // Refresh data setelah reject
-    //   _fetchOrders(_selectedFilter);
-    // } catch (e) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Gagal menolak order: $e')),
-    //   );
-    // }
-    // Untuk sekarang, hanya tampilkan snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(
-              'Fungsi Reject untuk SO ID: $idSalesOrder (Belum diimplementasi)')),
-    );
+    try {
+      await _rejectService.rejected(idSalesOrder);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Order $idSalesOrder ditolak')),
+      );
+      _fetchOrders(_selectedFilter);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menolak order: $e')),
+      );
+    }
   }
 
-  // Placeholder untuk fungsi Validate (implementasi service terpisah diperlukan)
   Future<void> _validateOrder(int idSalesOrder) async {
-    // TODO: Implementasi service untuk validate order
-    // Contoh:
-    // try {
-    //   await ApprovalActionService().validate(idSalesOrder);
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Order $idSalesOrder disetujui')),
-    //   );
-    //   // Refresh data setelah validate
-    //   _fetchOrders(_selectedFilter);
-    // } catch (e) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('Gagal menyetujui order: $e')),
-    //   );
-    // }
-    // Untuk sekarang, hanya tampilkan snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(
-              'Fungsi Validate untuk SO ID: $idSalesOrder (Belum diimplementasi)')),
-    );
+    try {
+      await _validatedService.validated(idSalesOrder);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Order $idSalesOrder disetujui')),
+      );
+      _fetchOrders(_selectedFilter);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyetujui order: $e')),
+      );
+    }
   }
 
-  // Fungsi untuk membangun Chip
   Widget _buildFilterChip(OrderStatus status, String label, Color color) {
     return ChoiceChip(
       label: Text(label),
       selected: _selectedFilter == status,
       selectedColor: color,
-      backgroundColor: color.withOpacity(0.3),
+      backgroundColor: color.withValues(alpha: 0.3),
       onSelected: (selected) {
         if (selected) {
           setState(() {
             _selectedFilter = status;
           });
-          _fetchOrders(status); // Panggil API berdasarkan filter yang dipilih
+          _fetchOrders(status);
         }
       },
     );
@@ -175,7 +159,6 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Tentukan apakah tombol Reject/Validate harus ditampilkan
     final bool showActionButtons =
         _selectedFilter == OrderStatus.unvalidated && _role == 'SALES_MANAGER';
 
@@ -192,19 +175,31 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
                 children: [
                   const Text(
                     'Approval Sales Order',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   // Filter Chips
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildFilterChip(OrderStatus.unvalidated, 'Unvalidated',
-                          Colors.redAccent),
                       _buildFilterChip(
-                          OrderStatus.rejected, 'Rejected', Colors.grey),
+                        OrderStatus.unvalidated,
+                        'Unvalidated',
+                        Colors.redAccent,
+                      ),
                       _buildFilterChip(
-                          OrderStatus.validated, 'Validated', Colors.green),
+                        OrderStatus.rejected,
+                        'Rejected',
+                        Colors.grey,
+                      ),
+                      _buildFilterChip(
+                        OrderStatus.validated,
+                        'Validated',
+                        Colors.green,
+                      ),
                     ],
                   ),
                 ],
@@ -263,31 +258,36 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
                                           Text(
                                               'Total Harga: Rp ${order.totalHarga.toStringAsFixed(2)}'),
                                           const SizedBox(height: 8),
-                                          // Tombol Aksi
                                           Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.end,
                                             children: [
-                                              // Tombol Detail (selalu ada)
                                               ElevatedButton(
                                                 onPressed: () {
-                                                  // TODO: Navigasi ke halaman detail
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    SnackBar(
-                                                        content: Text(
-                                                            'Detail untuk SO ID: ${order.idSalesOrder}')),
+                                                  // ScaffoldMessenger.of(context)
+                                                  //     .showSnackBar(
+                                                  //   SnackBar(
+                                                  //       content: Text(
+                                                  //           'Detail untuk SO ID: ${order.idSalesOrder}')),
+                                                  // );
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          DetailAllDataSOScreen(
+                                                        idSalesOrder:
+                                                            order.idSalesOrder,
+                                                      ),
+                                                    ),
                                                   );
                                                 },
                                                 child: const Text("Detail"),
                                               ),
-                                              // Tombol Reject & Validate (hanya di tab Unvalidated & untuk Sales Manager)
                                               if (showActionButtons) ...[
                                                 const SizedBox(width: 8),
                                                 OutlinedButton(
                                                   onPressed: () => _rejectOrder(
                                                       order.idSalesOrder),
-                                                  // Gunakan warna merah untuk menunjukkan penolakan
                                                   style:
                                                       OutlinedButton.styleFrom(
                                                     foregroundColor: Colors.red,
@@ -301,7 +301,6 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
                                                   onPressed: () =>
                                                       _validateOrder(
                                                           order.idSalesOrder),
-                                                  // Gunakan warna hijau untuk menunjukkan persetujuan
                                                   style:
                                                       ElevatedButton.styleFrom(
                                                     backgroundColor:
