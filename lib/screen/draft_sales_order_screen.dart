@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:ricky_ui_jc/model/draft/get/draft_so_model.dart';
 import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
 import 'package:ricky_ui_jc/screen/detail_draft_sales_order_screen.dart';
@@ -7,6 +9,7 @@ import 'package:ricky_ui_jc/service/draft_so_service.dart';
 import 'package:ricky_ui_jc/service/delete_draft_order_service.dart';
 import 'package:ricky_ui_jc/service/submit_draft_order_service.dart';
 import 'package:ricky_ui_jc/utils/secure_storage.dart';
+import 'package:ricky_ui_jc/network/network_api.dart';
 
 class DraftSalesOrderScreen extends StatefulWidget {
   const DraftSalesOrderScreen({super.key});
@@ -20,6 +23,7 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
   String _role = '';
   List<DraftSalesOrderModel> _draftSalesOrders = [];
   bool _isLoading = false;
+  final TextEditingController _searchController = TextEditingController();
 
   final DraftSalesOrderService _draftService = DraftSalesOrderService();
   final DeleteDraftOrderService _deleteService = DeleteDraftOrderService();
@@ -88,6 +92,59 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
     }
   }
 
+  // 🔍 Search via Backend
+  Future<void> _searchDrafts(String query) async {
+    try {
+      final isValid = await SecureStorage.isTokenValid();
+      if (!isValid) {
+        await _forceLogout('Sesi telah berakhir. Silakan login ulang.');
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      final token = await SecureStorage.read(key: 'token');
+      final response = await http.get(
+        Uri.parse('$baseUrlHp/api/sales-orders/drafts/search?q=$query'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> list = data['data'];
+        final results =
+            list.map((e) => DraftSalesOrderModel.fromJson(e)).toList();
+
+        if (mounted) {
+          setState(() {
+            _draftSalesOrders = results;
+            _isLoading = false;
+          });
+        }
+      } else {
+        final error = json.decode(response.body)['meta']['message'];
+        print('Gagal mencari: $error');
+        if (mounted) {
+          setState(() {
+            _draftSalesOrders = [];
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   Future<void> _forceLogout(String message) async {
     await SecureStorage.deleteAll();
     if (mounted) {
@@ -132,7 +189,6 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(response.meta.message)),
           );
-          // Refresh list setelah penghapusan berhasil
           await _fetchDraftSalesOrders();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -174,6 +230,7 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
   }
 
   Future<void> _refreshData() async {
+    _searchController.clear();
     await _loadUserData();
     await _fetchDraftSalesOrders();
   }
@@ -208,6 +265,32 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                // 🔍 Search Bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Cari no faktur, customer...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    onChanged: (value) {
+                      if (value.isEmpty) {
+                        _fetchDraftSalesOrders();
+                      } else {
+                        _searchDrafts(value);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Expanded(
                   child: _isLoading && _draftSalesOrders.isEmpty
                       ? const Center(child: CircularProgressIndicator())
@@ -233,16 +316,13 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
                                           child: Text(
                                             'ID: ${draft.idSalesOrder}',
                                             style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                                fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                         if (_role != 'SALES_MANAGER')
                                           IconButton(
-                                            icon: const Icon(
-                                              Icons.delete,
-                                              color: Colors.red,
-                                            ),
+                                            icon: const Icon(Icons.delete,
+                                                color: Colors.red),
                                             onPressed: () => _deleteDraft(
                                                 draft.idSalesOrder),
                                             tooltip: 'Hapus',
@@ -252,9 +332,6 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
                                     Text('No Faktur: ${draft.noFaktur}'),
                                     Text('Customer: ${draft.namaCustomer}'),
                                     Text('Transaksi: ${draft.transactionType}'),
-                                    // Text(
-                                    //   'Total: Rp ${draft.totalHarga.toStringAsFixed(2)}',
-                                    // ),
                                     const SizedBox(height: 12),
                                     Row(
                                       mainAxisAlignment:
@@ -268,8 +345,9 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
                                                 MaterialPageRoute(
                                                   builder: (context) =>
                                                       EditDraftSalesOrderScreen(
-                                                          idSalesOrder: draft
-                                                              .idSalesOrder),
+                                                    idSalesOrder:
+                                                        draft.idSalesOrder,
+                                                  ),
                                                 ),
                                               );
                                             },
@@ -306,8 +384,7 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
                                         width: double.infinity,
                                         child: ElevatedButton(
                                           onPressed: () => _submitDraftOrder(
-                                            draft.idSalesOrder,
-                                          ),
+                                              draft.idSalesOrder),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.orange,
                                             foregroundColor: Colors.white,
