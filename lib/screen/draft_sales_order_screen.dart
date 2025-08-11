@@ -92,7 +92,6 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
     }
   }
 
-  // 🔍 Search via Backend
   Future<void> _searchDrafts(String query) async {
     try {
       final isValid = await SecureStorage.isTokenValid();
@@ -107,7 +106,7 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
 
       final token = await SecureStorage.read(key: 'token');
       final response = await http.get(
-        Uri.parse('$baseUrlHp/api/sales-orders/drafts/search?q=$query'),
+        Uri.parse('$baseUrlHp/sales-orders/drafts/search?q=$query'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
