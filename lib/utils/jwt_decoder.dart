@@ -17,17 +17,31 @@ class JwtDecoder {
   }
 
   /// Cek apakah token sudah expired
+  // static bool isTokenExpired(String token) {
+  //   try {
+  //     final payload = decodeToken(token);
+  //     if (payload.containsKey('exp')) {
+  //       final exp = payload['exp'] as int;
+  //       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+  //       return exp < now;
+  //     }
+  //     return false; // Jika tidak ada exp, anggap tidak expired
+  //   } catch (e) {
+  //     return true; // Jika error decode, anggap expired (aman)
+  //   }
+  // }
   static bool isTokenExpired(String token) {
     try {
-      final payload = decodeToken(token);
-      if (payload.containsKey('exp')) {
-        final exp = payload['exp'] as int;
-        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        return exp < now;
-      }
-      return false; // Jika tidak ada exp, anggap tidak expired
+      final payload = json.decode(
+        utf8.decode(
+          base64Url.decode(base64Url.normalize(token.split('.')[1])),
+        ),
+      );
+      final exp = payload['exp'] as int;
+      return DateTime.now()
+          .isAfter(DateTime.fromMillisecondsSinceEpoch(exp * 1000));
     } catch (e) {
-      return true; // Jika error decode, anggap expired (aman)
+      return true;
     }
   }
 }

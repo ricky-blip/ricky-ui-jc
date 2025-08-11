@@ -237,15 +237,16 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
                                             ),
                                           ),
                                         ),
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.delete,
-                                            color: Colors.red,
+                                        if (_role != 'SALES_MANAGER')
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: () => _deleteDraft(
+                                                draft.idSalesOrder),
+                                            tooltip: 'Hapus',
                                           ),
-                                          onPressed: () =>
-                                              _deleteDraft(draft.idSalesOrder),
-                                          tooltip: 'Hapus',
-                                        ),
                                       ],
                                     ),
                                     Text('No Faktur: ${draft.noFaktur}'),

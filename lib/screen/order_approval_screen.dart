@@ -1,13 +1,15 @@
 // screen/order_approval_screen.dart
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
 import 'package:ricky_ui_jc/screen/detail_all_data_screen.dart';
-import 'package:ricky_ui_jc/screen/detail_draft_sales_order_screen.dart';
 import 'package:ricky_ui_jc/service/approval/rejected_so_service.dart';
 import 'package:ricky_ui_jc/service/approval/validated_so_service.dart';
 import 'package:ricky_ui_jc/utils/secure_storage.dart';
 import 'package:ricky_ui_jc/service/approval_order_service.dart';
 import 'package:ricky_ui_jc/model/approval_order_model.dart';
+import 'package:ricky_ui_jc/network/network_api.dart';
 
 // Enum untuk merepresentasikan status filter
 enum OrderStatus { unvalidated, rejected, validated }
@@ -21,10 +23,11 @@ class OrderApprovalScreen extends StatefulWidget {
 
 class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
   String _fullName = '';
-  String _role = ''; // Simpan role pengguna
+  String _role = '';
   ApprovalOrderResponseModel? _orders;
   bool _isLoading = true;
-  OrderStatus _selectedFilter = OrderStatus.unvalidated; // Default filter
+  OrderStatus _selectedFilter = OrderStatus.unvalidated;
+  final TextEditingController _searchController = TextEditingController();
 
   final ApprovalOrderService _approvalService = ApprovalOrderService();
   final RejectedSoService _rejectService = RejectedSoService();
@@ -40,11 +43,11 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
   Future<void> _loadUserData() async {
     try {
       final fullName = await SecureStorage.read(key: 'fullName');
-      final role = await SecureStorage.read(key: 'role'); // Baca role
+      final role = await SecureStorage.read(key: 'role');
       if (mounted) {
         setState(() {
           _fullName = fullName ?? '';
-          _role = role ?? ''; // Simpan role
+          _role = role ?? '';
         });
       }
     } catch (e) {
@@ -66,7 +69,7 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
 
       setState(() {
         _isLoading = true;
-        _orders = null; // Reset data sebelumnya
+        _orders = null;
       });
 
       ApprovalOrderResponseModel orders;
@@ -95,9 +98,73 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
         );
         setState(() {
           _isLoading = false;
-          _orders = null; // Reset data jika error
+          _orders = null;
         });
       }
+    }
+  }
+
+  Future<void> _searchOrders(OrderStatus status, String query) async {
+    try {
+      final isValid = await SecureStorage.isTokenValid();
+      if (!isValid) {
+        await _forceLogout('Sesi telah berakhir. Silakan login ulang.');
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+        _orders = null;
+      });
+
+      final token = await SecureStorage.read(key: 'token');
+      // ✅ Backend sudah pakai UPPER() dan LIKE, jadi kita kirim query apa saja
+      final response = await http.get(
+        Uri.parse(
+            '$baseUrlHp/sales-orders/${_getStatusPath(status)}/search?q=$query'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final orders = ApprovalOrderResponseModel.fromJson(data);
+        if (mounted) {
+          setState(() {
+            _orders = orders;
+            _isLoading = false;
+          });
+        }
+      } else {
+        final error = json.decode(response.body)['meta']['message'];
+        print('Gagal mencari: $error');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _orders = null;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+        setState(() {
+          _isLoading = false;
+          _orders = null;
+        });
+      }
+    }
+  }
+
+  String _getStatusPath(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.unvalidated:
+        return 'unvalidated';
+      case OrderStatus.rejected:
+        return 'rejected';
+      case OrderStatus.validated:
+        return 'validated';
     }
   }
 
@@ -150,6 +217,7 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
         if (selected) {
           setState(() {
             _selectedFilter = status;
+            _searchController.clear();
           });
           _fetchOrders(status);
         }
@@ -167,7 +235,7 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header dengan judul dan filter chips
+            // Header dengan judul, search, dan filter chips
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -179,6 +247,29 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 🔍 Search Bar
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Cari no faktur, customer...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    onChanged: (value) {
+                      if (value.isEmpty) {
+                        _fetchOrders(_selectedFilter);
+                      } else {
+                        _searchOrders(_selectedFilter, value);
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
                   // Filter Chips
@@ -211,7 +302,10 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : RefreshIndicator(
-                      onRefresh: () => _fetchOrders(_selectedFilter),
+                      onRefresh: () => _searchController.text.isEmpty
+                          ? _fetchOrders(_selectedFilter)
+                          : _searchOrders(
+                              _selectedFilter, _searchController.text),
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
@@ -222,7 +316,7 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
                                 child: Padding(
                                   padding: EdgeInsets.all(20.0),
                                   child: Text(
-                                    'Tidak ada data Sales Order untuk filter ini.',
+                                    'Tidak ada data.',
                                     style: TextStyle(fontSize: 16),
                                   ),
                                 ),
@@ -264,12 +358,6 @@ class _OrderApprovalScreenState extends State<OrderApprovalScreen> {
                                             children: [
                                               ElevatedButton(
                                                 onPressed: () {
-                                                  // ScaffoldMessenger.of(context)
-                                                  //     .showSnackBar(
-                                                  //   SnackBar(
-                                                  //       content: Text(
-                                                  //           'Detail untuk SO ID: ${order.idSalesOrder}')),
-                                                  // );
                                                   Navigator.push(
                                                     context,
                                                     MaterialPageRoute(

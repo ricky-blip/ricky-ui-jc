@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:ricky_ui_jc/model/draft/get/detail_draft_order_model.dart';
+import 'package:ricky_ui_jc/network/network_api.dart';
 import 'package:ricky_ui_jc/screen/0.auth/login_screen.dart';
-import 'package:ricky_ui_jc/service/Get%20All%20Detail/detail_all_data_service.dart';
-import 'package:ricky_ui_jc/service/detail_draft_order_service.dart';
+import 'package:ricky_ui_jc/service/Get All Detail/detail_all_data_service.dart';
 import 'package:ricky_ui_jc/utils/secure_storage.dart';
+import 'package:ricky_ui_jc/utils/pdf_helper.dart';
 
 class DetailAllDataSOScreen extends StatefulWidget {
   final int idSalesOrder;
@@ -15,7 +16,6 @@ class DetailAllDataSOScreen extends StatefulWidget {
 }
 
 class _DetailAllDataSOScreenState extends State<DetailAllDataSOScreen> {
-  // late DetailDraftOrderResponseModel _detail;
   late DetailDraftOrderResponseModel _detail;
   bool _isLoading = true;
 
@@ -69,7 +69,7 @@ class _DetailAllDataSOScreenState extends State<DetailAllDataSOScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detail'),
+        title: const Text('Detail Sales Order'),
         backgroundColor: Colors.white,
         elevation: 0,
       ),
@@ -82,12 +82,10 @@ class _DetailAllDataSOScreenState extends State<DetailAllDataSOScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // _buildHeader(_detail.data),
-                      // const SizedBox(height: 24),
-                      // _buildDetails(_detail.data),
-                      _buildHeader(_detail!.data),
+                      _buildHeader(
+                          _detail.data), // ✅ Sudah benar, tidak perlu !
                       const SizedBox(height: 24),
-                      _buildDetails(_detail!.data),
+                      _buildDetails(_detail.data),
                     ],
                   ),
                 ),
@@ -104,7 +102,7 @@ class _DetailAllDataSOScreenState extends State<DetailAllDataSOScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Tanggal Order: ${data.tanggalOrder.toLocal().toString().split(' ').first}', // Format tanggal lebih baik
+          'Tanggal Order: ${data.tanggalOrder.toLocal().toString().split(' ').first}',
           style: const TextStyle(fontSize: 14),
         ),
         const SizedBox(height: 8),
@@ -113,7 +111,7 @@ class _DetailAllDataSOScreenState extends State<DetailAllDataSOScreen> {
           style: const TextStyle(fontSize: 14),
         ),
         const SizedBox(height: 12),
-        const Divider(), // Pemisah
+        const Divider(),
         const SizedBox(height: 8),
         Text(
           'Customer: ${data.namaCustomer}',
@@ -135,9 +133,8 @@ class _DetailAllDataSOScreenState extends State<DetailAllDataSOScreen> {
           style: const TextStyle(fontSize: 14),
         ),
         const SizedBox(height: 16),
-        const Divider(), // Pemisah
+        const Divider(),
         const SizedBox(height: 8),
-        // --- Bagian Perhitungan ---
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -170,7 +167,7 @@ class _DetailAllDataSOScreenState extends State<DetailAllDataSOScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        const Divider(), // Pemisah
+        const Divider(),
         const SizedBox(height: 8),
         Text(
           'Status: ${data.status}',
@@ -186,7 +183,6 @@ class _DetailAllDataSOScreenState extends State<DetailAllDataSOScreen> {
           '${data.salesPerson.fullName} (${data.salesPerson.username})',
           style: const TextStyle(fontSize: 14),
         ),
-        // Jika salesManager ada, tampilkan juga
         if (data.salesManager != null) ...[
           const SizedBox(height: 4),
           Text(
@@ -241,6 +237,27 @@ class _DetailAllDataSOScreenState extends State<DetailAllDataSOScreen> {
               ),
             );
           },
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton.icon(
+          onPressed: () async {
+            try {
+              await PdfHelper.downloadAndOpenPdf(
+                baseUrlHp,
+                widget.idSalesOrder,
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Gagal download PDF: $e')),
+              );
+            }
+          },
+          icon: const Icon(Icons.picture_as_pdf),
+          label: const Text('Download PDF'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+          ),
         ),
       ],
     );
