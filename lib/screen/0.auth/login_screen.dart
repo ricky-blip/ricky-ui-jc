@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:ricky_ui_jc/screen/main_screen.dart';
 import 'package:ricky_ui_jc/service/auth_service.dart';
@@ -47,6 +48,17 @@ class _LoginScreenState extends State<LoginScreen> {
       await SecureStorage.write(
           key: 'fullName', value: response.data.user.fullName);
       await SecureStorage.write(key: 'role', value: response.data.user.role);
+
+      // Get FCM Token
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken != null) {
+        try {
+          await _authService.saveFcmToken(fcmToken);
+          print('FCM Token berhasil dikirim: $fcmToken');
+        } catch (e) {
+          print('Gagal kirim FCM Token: $e');
+        }
+      }
 
       if (!mounted) return;
       Navigator.pushReplacement(

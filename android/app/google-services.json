@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1076064280808",
+    "project_id": "ricky-sales-app",
+    "storage_bucket": "ricky-sales-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1076064280808:android:1eba109bbd3766db51695d",
+        "android_client_info": {
+          "package_name": "com.ricky.ricky_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYyCKddCDeI_VLW4fOU99TlZ7SqxDxVDw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

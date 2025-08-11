@@ -61,4 +61,22 @@ class AuthService {
     final json = jsonDecode(response.body);
     return ChangePasswordResponse.fromJson(json);
   }
+
+  Future<void> saveFcmToken(String fcmToken) async {
+    final token = await SecureStorage.read(key: 'token');
+    final url = Uri.parse('$baseUrlHp/auth/save-fcm-token');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'fcmToken': fcmToken}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Gagal simpan FCM token');
+    }
+  }
 }

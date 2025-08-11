@@ -1,0 +1,2 @@
+D:/Development/Juara Coding/ricky_ui_jc/android/app/.cxx/Debug/2a454l4k/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/Development/Juara Coding/ricky_ui_jc/android/app/.cxx/Debug/2a454l4k/armeabi-v7a/CMakeFiles/rebuild_cache.dir

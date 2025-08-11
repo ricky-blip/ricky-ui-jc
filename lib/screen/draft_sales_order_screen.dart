@@ -259,24 +259,25 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceEvenly,
                                       children: [
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    EditDraftSalesOrderScreen(
-                                                        idSalesOrder:
-                                                            draft.idSalesOrder),
-                                              ),
-                                            );
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.blue,
-                                            foregroundColor: Colors.white,
+                                        if (_role != 'SALES_MANAGER')
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      EditDraftSalesOrderScreen(
+                                                          idSalesOrder: draft
+                                                              .idSalesOrder),
+                                                ),
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.blue,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            child: const Text("Edit"),
                                           ),
-                                          child: const Text("Edit"),
-                                        ),
                                         ElevatedButton(
                                           onPressed: () {
                                             Navigator.push(
@@ -299,19 +300,20 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
                                       ],
                                     ),
                                     const SizedBox(height: 12),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton(
-                                        onPressed: () => _submitDraftOrder(
-                                          draft.idSalesOrder,
+                                    if (_role != 'SALES_MANAGER')
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          onPressed: () => _submitDraftOrder(
+                                            draft.idSalesOrder,
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.orange,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          child: const Text("Submit"),
                                         ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.orange,
-                                          foregroundColor: Colors.white,
-                                        ),
-                                        child: const Text("Submit"),
                                       ),
-                                    ),
                                   ],
                                 ),
                               ),

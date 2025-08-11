@@ -1,4 +1,4 @@
-package com.example.ricky_ui_jc
+package com.ricky.ricky_app
 
 import io.flutter.embedding.android.FlutterActivity
 
