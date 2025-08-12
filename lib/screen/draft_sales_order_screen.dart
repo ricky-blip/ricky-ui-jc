@@ -18,12 +18,15 @@ class DraftSalesOrderScreen extends StatefulWidget {
   State<DraftSalesOrderScreen> createState() => _DraftSalesOrderScreenState();
 }
 
-class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
+class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen>
+    with TickerProviderStateMixin {
   String _fullName = '';
   String _role = '';
   List<DraftSalesOrderModel> _draftSalesOrders = [];
   bool _isLoading = false;
   final TextEditingController _searchController = TextEditingController();
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   final DraftSalesOrderService _draftService = DraftSalesOrderService();
   final DeleteDraftOrderService _deleteService = DeleteDraftOrderService();
@@ -32,8 +35,27 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+
     _loadUserData();
     _fetchDraftSalesOrders();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -48,9 +70,7 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal muat data user: $e')),
-        );
+        _showErrorSnackBar('Gagal muat data user: $e');
       }
     }
   }
@@ -73,18 +93,15 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
         setState(() {
           _draftSalesOrders = response.data!;
         });
+        _animationController.forward();
       } else {
         setState(() {
           _draftSalesOrders = [];
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.meta.message)),
-        );
+        _showErrorSnackBar(response.meta.message);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat draft sales order: $e')),
-      );
+      _showErrorSnackBar('Gagal memuat draft sales order: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -134,9 +151,7 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        _showErrorSnackBar('Error: $e');
         setState(() {
           _isLoading = false;
         });
@@ -147,8 +162,7 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
   Future<void> _forceLogout(String message) async {
     await SecureStorage.deleteAll();
     if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      _showErrorSnackBar(message);
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -158,26 +172,54 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
   }
 
   Future<void> _deleteDraft(int idSalesOrder) async {
-    bool confirm = await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Konfirmasi Hapus'),
-            content: const Text('Apakah Anda yakin ingin menghapus draft ini?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Batal'),
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
               ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-              ),
-            ],
+              child: Icon(Icons.delete_forever, color: Colors.red.shade600),
+            ),
+            const SizedBox(width: 12),
+            const Text('Konfirmasi Hapus'),
+          ],
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus draft ini? Tindakan ini tidak dapat dibatalkan.',
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: const Text('Batal'),
           ),
-        ) ??
-        false;
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
 
-    if (confirm) {
+    if (result == true) {
       setState(() {
         _isLoading = true;
       });
@@ -185,20 +227,14 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
       try {
         final response = await _deleteService.deleteDraft(idSalesOrder);
         if (response.meta.status == 'success') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(response.meta.message)),
-          );
+          _showSuccessSnackBar(response.meta.message);
           await _fetchDraftSalesOrders();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal menghapus draft')),
-          );
+          _showErrorSnackBar('Gagal menghapus draft');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal menghapus draft: $e')),
-          );
+          _showErrorSnackBar('Gagal menghapus draft: $e');
         }
       } finally {
         if (mounted) {
@@ -211,36 +247,362 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
   }
 
   Future<void> _submitDraftOrder(int idSalesOrder) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Mengirim ke approval...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
     try {
       await _submitService.submit(idSalesOrder);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Sales Order berhasil dikirim ke approval")),
-      );
+      Navigator.pop(context); // Close loading dialog
+      _showSuccessSnackBar("Sales Order berhasil dikirim ke approval");
       setState(() {
         _draftSalesOrders
             .removeWhere((draft) => draft.idSalesOrder == idSalesOrder);
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal mengirim Sales Order ke approval: $e')),
-      );
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar('Gagal mengirim Sales Order ke approval: $e');
     }
   }
 
   Future<void> _refreshData() async {
     _searchController.clear();
+    _animationController.reset();
     await _loadUserData();
     await _fetchDraftSalesOrders();
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Widget _buildDraftCard(DraftSalesOrderModel draft, int index) {
+    return AnimatedBuilder(
+      animation: _fadeAnimation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, 50 * (1 - _fadeAnimation.value)),
+          child: Opacity(
+            opacity: _fadeAnimation.value,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white,
+                        Colors.grey.shade50,
+                      ],
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade100,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                'ID: ${draft.idSalesOrder}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue.shade800,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_role != 'SALES_MANAGER')
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red.shade600,
+                                    size: 16,
+                                  ),
+                                  onPressed: () =>
+                                      _deleteDraft(draft.idSalesOrder),
+                                  tooltip: 'Hapus Draft',
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Divider(),
+                        // Content
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[200]!),
+                          ),
+                          child: Column(
+                            children: [
+                              _buildInfoRow(Icons.receipt_long, 'No Faktur',
+                                  draft.noFaktur, true),
+                              const Divider(height: 12, color: Colors.grey),
+                              _buildInfoRow(Icons.person_outline, 'Customer',
+                                  draft.namaCustomer, false),
+                              const Divider(height: 12, color: Colors.grey),
+                              _buildInfoRow(Icons.swap_horiz, 'Transaksi',
+                                  draft.transactionType, false),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            if (_role != 'SALES_MANAGER') ...[
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            EditDraftSalesOrderScreen(
+                                          idSalesOrder: draft.idSalesOrder,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon:
+                                      const Icon(Icons.edit_outlined, size: 16),
+                                  label: const Text("Edit"),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.orange,
+                                    side:
+                                        const BorderSide(color: Colors.orange),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          DetailDraftSalesOrderScreen(
+                                        idSalesOrder: draft.idSalesOrder,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.visibility, size: 16),
+                                label: const Text("Detail"),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.blue,
+                                  side: const BorderSide(color: Colors.blue),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        if (_role != 'SALES_MANAGER') ...[
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () =>
+                                  _submitDraftOrder(draft.idSalesOrder),
+                              icon: const Icon(Icons.send, size: 16),
+                              label: const Text("Submit"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value, bool isBold) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: Colors.grey[600]),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(50),
+            ),
+            child: Icon(
+              Icons.drafts_outlined,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Tidak ada draft sales order',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Draft sales order akan muncul di sini',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8C4C4),
+      backgroundColor: Colors.grey[300],
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _refreshData,
+          color: Colors.blue.shade600,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
             child: Column(
@@ -264,139 +626,84 @@ class _DraftSalesOrderScreenState extends State<DraftSalesOrderScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // 🔍 Search Bar
+
+                // Search Bar
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Cari no faktur, customer...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey[300]!),
                     ),
-                    onChanged: (value) {
-                      if (value.isEmpty) {
-                        _fetchDraftSalesOrders();
-                      } else {
-                        _searchDrafts(value);
-                      }
-                    },
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Cari no faktur, customer...',
+                        hintStyle: TextStyle(color: Colors.grey[500]),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Colors.grey[600],
+                          size: 16,
+                        ),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _fetchDraftSalesOrders();
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() {}); // Update suffix icon
+                        if (value.isEmpty) {
+                          _fetchDraftSalesOrders();
+                        } else {
+                          _searchDrafts(value);
+                        }
+                      },
+                    ),
                   ),
                 ),
+
                 const SizedBox(height: 16),
+
+                // Content
                 Expanded(
                   child: _isLoading && _draftSalesOrders.isEmpty
-                      ? const Center(child: CircularProgressIndicator())
-                      : ListView.builder(
-                          itemCount: _draftSalesOrders.length,
-                          itemBuilder: (context, index) {
-                            final draft = _draftSalesOrders[index];
-                            return Card(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: BorderSide(color: Colors.red.shade100),
-                              ),
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 6),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            'ID: ${draft.idSalesOrder}',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                        if (_role != 'SALES_MANAGER')
-                                          IconButton(
-                                            icon: const Icon(Icons.delete,
-                                                color: Colors.red),
-                                            onPressed: () => _deleteDraft(
-                                                draft.idSalesOrder),
-                                            tooltip: 'Hapus',
-                                          ),
-                                      ],
-                                    ),
-                                    Text('No Faktur: ${draft.noFaktur}'),
-                                    Text('Customer: ${draft.namaCustomer}'),
-                                    Text('Transaksi: ${draft.transactionType}'),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        if (_role != 'SALES_MANAGER')
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      EditDraftSalesOrderScreen(
-                                                    idSalesOrder:
-                                                        draft.idSalesOrder,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.blue,
-                                              foregroundColor: Colors.white,
-                                            ),
-                                            child: const Text("Edit"),
-                                          ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    DetailDraftSalesOrderScreen(
-                                                  idSalesOrder:
-                                                      draft.idSalesOrder,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
-                                            foregroundColor: Colors.white,
-                                          ),
-                                          child: const Text("Detail"),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    if (_role != 'SALES_MANAGER')
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: ElevatedButton(
-                                          onPressed: () => _submitDraftOrder(
-                                              draft.idSalesOrder),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.orange,
-                                            foregroundColor: Colors.white,
-                                          ),
-                                          child: const Text("Submit"),
-                                        ),
-                                      ),
-                                  ],
+                      ? const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 16),
+                              Text(
+                                'Memuat draft sales order...',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ],
+                          ),
+                        )
+                      : _draftSalesOrders.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              itemCount: _draftSalesOrders.length,
+                              itemBuilder: (context, index) {
+                                final draft = _draftSalesOrders[index];
+                                return _buildDraftCard(draft, index);
+                              },
+                            ),
                 ),
               ],
             ),
