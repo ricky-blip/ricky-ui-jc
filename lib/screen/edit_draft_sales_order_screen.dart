@@ -220,28 +220,28 @@ class _EditDraftSalesOrderScreenState extends State<EditDraftSalesOrderScreen> {
         backgroundColor: Colors.orange[600],
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          if (!_isLoading && _draft != null)
-            TextButton(
-              onPressed: _isSaving ? null : _saveChanges,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text(
-                      'Simpan',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-            ),
-        ],
+        // actions: [
+        //   if (!_isLoading && _draft != null)
+        //     TextButton(
+        //       onPressed: _isSaving ? null : _saveChanges,
+        //       child: _isSaving
+        //           ? const SizedBox(
+        //               width: 20,
+        //               height: 20,
+        //               child: CircularProgressIndicator(
+        //                 strokeWidth: 2,
+        //                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        //               ),
+        //             )
+        //           : const Text(
+        //               'Simpan',
+        //               style: TextStyle(
+        //                 color: Colors.white,
+        //                 fontWeight: FontWeight.w600,
+        //               ),
+        //             ),
+        //     ),
+        // ],
       ),
       body: _isLoading
           ? const Center(

@@ -83,7 +83,9 @@ void main() async {
       debugShowCheckedModeBanner: false,
       title: 'Selo',
       theme: ThemeData(primarySwatch: Colors.red),
-      home: savedUrl == null ? const UrlConfigScreen() : const SplashScreen(),
+      // url bisa domain, jangan ip saja
+      // home: savedUrl == null ? const UrlConfigScreen() : const SplashScreen(),
+      home: const SplashScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/main': (context) => const MainScreen(),

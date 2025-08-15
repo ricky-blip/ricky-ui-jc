@@ -244,8 +244,10 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       return 'Selamat Pagi';
     } else if (hour < 17) {
       return 'Selamat Siang';
-    } else {
+    } else if (hour < 21) {
       return 'Selamat Sore';
+    } else {
+      return 'Selamat Malam';
     }
   }
 
